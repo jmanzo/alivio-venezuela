@@ -1,0 +1,59 @@
+@import "tailwindcss";
+
+@theme inline {
+  --font-sans: var(--font-sans), ui-sans-serif, system-ui, sans-serif;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  font-family: var(--font-sans);
+}
+
+/* ---- Leaflet map sizing ------------------------------------------------ */
+.avz-map {
+  height: 70vh;
+  min-height: 360px;
+  width: 100%;
+}
+
+.avz-picker-map {
+  height: 240px;
+  width: 100%;
+}
+
+/* Keep Leaflet controls below modals/headers. */
+.leaflet-pane,
+.leaflet-top,
+.leaflet-bottom {
+  z-index: 0;
+}
+
+/* ---- Custom map pin (BEM) --------------------------------------------- */
+.avz-pin {
+  --avz-pin-color: #dc2626;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  background-color: var(--avz-pin-color);
+  border: 2px solid #ffffff;
+  border-radius: 50% 50% 50% 0;
+  transform: rotate(-45deg);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35);
+}
+
+.avz-pin__emoji {
+  transform: rotate(45deg);
+  font-size: 13px;
+  line-height: 1;
+}
+
+.avz-pin--covered {
+  opacity: 0.5;
+  filter: grayscale(0.4);
+}
