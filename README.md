@@ -70,9 +70,46 @@ npm run dev                  # http://localhost:3000
 
 Without Supabase credentials the app starts in **demo mode** (seeded in-memory
 data, single-client). Add the env vars to enable Postgres + cross-device
-realtime.
+realtime — either a local Supabase stack (recommended for day-to-day dev, see
+below) or the real hosted project (see [Deploy to Vercel](#deploy-to-vercel)).
 
-## Supabase setup
+## Local Supabase (free, isolated from production)
+
+Run the whole Supabase stack (Postgres + Realtime + Studio) on your machine
+via Docker, using the same migration that provisions production. This gives
+you a real Postgres + Realtime instance to develop against without ever
+touching production data or credentials.
+
+1. Install [Docker Desktop](https://docs.docker.com/desktop/) (the CLI needs
+   it to run the local stack) — it's already a dev dependency of this repo
+   (`supabase`), so no separate install is needed for the CLI itself.
+2. Start the stack (applies `supabase/migrations/0001_init.sql` automatically,
+   including the demo seed rows):
+
+   ```bash
+   npm run db:start
+   ```
+
+   First run downloads Docker images and can take a few minutes. Once it's
+   up, it prints local API URL + `anon` + `service_role` keys (you can get
+   them again anytime with `npm run db:status`).
+3. Copy those local values into `.env.local`:
+
+   ```env
+   NEXT_PUBLIC_SUPABASE_URL=http://127.0.0.1:54321
+   NEXT_PUBLIC_SUPABASE_ANON_KEY=<anon key from `npm run db:status`>
+   SUPABASE_SERVICE_ROLE_KEY=<service_role key from `npm run db:status`>
+   ```
+
+4. `npm run dev` and use the app as usual — it now talks to your local
+   Postgres + Realtime, fully isolated from production.
+5. Inspect/edit data visually at the local Supabase Studio, `http://127.0.0.1:54323`.
+6. Useful commands:
+   - `npm run db:reset` — wipe the local DB and re-run all migrations (fresh
+     seed data every time; use this after editing a migration file).
+   - `npm run db:stop` — stop the local containers when you're done.
+
+## Supabase setup (production)
 
 1. Create a project at [supabase.com](https://supabase.com).
 2. In the SQL editor, run [`supabase/migrations/0001_init.sql`](./supabase/migrations/0001_init.sql)
@@ -89,6 +126,10 @@ SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
 The anon key is browser-safe (read + realtime only, enforced by RLS). The
 service role key is server-only and used to write rows for unauthenticated
 users.
+
+Use a **separate Supabase project for local/dev work** (or, better, the local
+Docker stack above) so you're never testing against production data with
+production credentials.
 
 ## Deploy to Vercel
 
