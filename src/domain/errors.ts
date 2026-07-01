@@ -12,14 +12,20 @@ export class ValidationError extends Data.TaggedError("ValidationError")<{
   readonly issues?: ReadonlyArray<string>;
 }> {}
 
+/** Authentication / authorization failed (maps to HTTP 401). */
+export class AuthError extends Data.TaggedError("AuthError")<{
+  readonly message: string;
+}> {}
+
 /** Any failure originating from Supabase / Postgres (maps to HTTP 500). */
 export class DatabaseError extends Data.TaggedError("DatabaseError")<{
   readonly message: string;
   readonly cause?: unknown;
 }> {}
 
-/** A need with the requested id does not exist (maps to HTTP 404). */
-export class NeedNotFoundError extends Data.TaggedError("NeedNotFoundError")<{
+/** A requested entity does not exist (maps to HTTP 404). */
+export class NotFoundError extends Data.TaggedError("NotFoundError")<{
+  readonly entity: string;
   readonly id: string;
 }> {}
 
@@ -30,6 +36,7 @@ export class ConfigurationError extends Data.TaggedError("ConfigurationError")<{
 
 export type AppError =
   | ValidationError
+  | AuthError
   | DatabaseError
-  | NeedNotFoundError
+  | NotFoundError
   | ConfigurationError;
