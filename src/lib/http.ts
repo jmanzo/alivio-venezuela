@@ -2,22 +2,28 @@ import { Cause, Effect, Exit, ParseResult, Schema } from "effect";
 import { NextResponse } from "next/server";
 import { ValidationError, type AppError } from "@/domain/errors";
 import { AppRuntime } from "@/runtime/server";
-import type { DuplicateDetector } from "@/services/DuplicateDetector";
-import type { NeedsRepository } from "@/services/NeedsRepository";
+import type { CatalogRepository } from "@/services/CatalogRepository";
+import type { CentrosRepository } from "@/services/CentrosRepository";
+import type { ProductStatusRepository } from "@/services/ProductStatusRepository";
 
 /** Services available to any Effect run from an API route. The Supabase client
- *  is an internal dependency of the repository, not used directly by routes. */
-export type ApiServices = NeedsRepository | DuplicateDetector;
+ *  is an internal dependency of the repositories, not used directly by routes. */
+export type ApiServices =
+  | CatalogRepository
+  | CentrosRepository
+  | ProductStatusRepository;
 
 const STATUS_BY_TAG: Record<AppError["_tag"], number> = {
   ValidationError: 400,
-  NeedNotFoundError: 404,
+  AuthError: 401,
+  NotFoundError: 404,
   DatabaseError: 500,
   ConfigurationError: 500,
 };
 
 function messageOf(error: AppError): string {
-  if (error._tag === "NeedNotFoundError") return `Need ${error.id} not found`;
+  if (error._tag === "NotFoundError")
+    return `${error.entity} ${error.id} not found`;
   return error.message;
 }
 

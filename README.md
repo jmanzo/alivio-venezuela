@@ -1,117 +1,124 @@
 # AlivioVenezuela
 
-Real-time, no-login aid coordination for the June 24, 2026 earthquake doublet in
-Yaracuy & Carabobo, Venezuela. Anyone can **report a need** and anyone can
-**cover it**, with live visibility so duplicate effort is obvious before it
-happens.
+A lightweight, real-time **semaphore of collection centers** ("centros de
+acopio") for the June 24, 2026 earthquake in Venezuela. Citizens see, at a
+glance, **what to bring — and what NOT to bring** to each center before they
+donate; each center keeps its own board up to date; an operator approves new
+centers before they go public.
 
 > UI is in Spanish (target users are in Venezuela). Code, comments and commits
 > are in English.
 
-## Features
+## What it does
 
-- **Report a need** in under 30s: category, urgency, description, location (drop
-  a pin or use device GPS), optional contact.
-- **Browse** as a list (critical-first, then most recent) or a Leaflet map with
-  urgency-colored pins. Filter by category and status — list and map stay in
-  sync from the same data.
-- **Cover a need**: `open → in_progress → covered`, no auth, large tap targets.
-- **Live sync** across all devices via Supabase Realtime — no manual refresh.
-- **Soft duplicate detection**: same-category needs within ~750 m raise a
-  non-blocking warning ("flag, don't block").
-- **Export**: copy/share a plain-text list of pending needs for NGOs offline.
-- **Graceful fallback**: with no database configured, the app runs on an
-  in-memory store (demo mode) so the deployed URL is never blank.
+- **Público (no login):** browse approved centers on a list or map, open any
+  center to see its live product semaphore, and register a new center.
+- **Centro admin (password per center):** once approved, log in and set the
+  stock status of each product. Changes appear to the public in near-real-time.
+- **Super admin (single password):** approve / reject / disable centers.
+
+### The semaphore
+
+Each product a center tracks has one of four stock levels:
+
+| Estado         | Significado                                                    |
+| -------------- | ------------------------------------------------------------- |
+| 🚨 Crítico     | Sin stock. Traer con prioridad.                               |
+| ⚠️ Necesita más | Quedan pocas unidades.                                        |
+| ✅ Suficiente   | Inventario adecuado por ahora.                               |
+| 📦 Abundante   | No traer — bien abastecidos.                                  |
 
 ## Tech stack
 
 - **Next.js 16** (App Router) + **React 19** + **TypeScript**
-- **Effect** — the application is structured around Effect (services, layers,
-  schema, typed errors). See [Architecture](#architecture-the-effect-layer).
-- **Supabase** (Postgres + Realtime) — RLS read-only for the browser; writes go
-  through the server with the service role key.
-- **Leaflet** + OpenStreetMap tiles (no API key)
-- **Tailwind CSS v4**, mobile-first
-- **Vercel** for hosting
+- **Effect** — services, layers, schema, typed errors (the data layer is
+  swappable and every failure is typed).
+- **Supabase** (Postgres + Realtime) — anon key is realtime-only under RLS;
+  writes go through the server with the service-role key after an auth check.
+- **Leaflet** + OpenStreetMap tiles (no API key) — pin per center.
+- **Tailwind CSS v4**, mobile-first. Custom CSS uses the BEM pattern.
+- **Vercel** for hosting.
 
-## Architecture (the Effect layer)
-
-The codebase is organized as a functional core wired with Effect's dependency
-injection, so the data layer is swappable and every failure is typed.
+## Architecture
 
 ```
 src/
-  domain/        Pure domain. Effect `Schema` models (Need, StatusUpdate),
-                 enums, and `Data.TaggedError` types (Validation/Database/...).
+  domain/        Pure domain. Effect `Schema` models (Catalog, Centro,
+                 ProductStatus), enums, and `Data.TaggedError` types.
   services/      Effect services (`Context.Tag`) + `Layer` implementations:
-                   Supabase            – server client (service role)
-                   NeedsRepository     – CRUD, returns typed Effects
-                   MockNeedsRepository – in-memory layer (same interface)
-                   DuplicateDetector   – proximity check over the repository
+                   Supabase                – server client (service role)
+                   CatalogRepository       – categories + products
+                   CentrosRepository       – register / approve / authenticate
+                   ProductStatusRepository – per-centro stock statuses
+                   MockRepositories        – in-memory layers (demo mode)
   runtime/       `ManagedRuntime` assembled from the layers (live or mock,
                  chosen by whether Supabase env vars are present).
-  lib/           http (Exit → Response mapping), api client, geo, formatting.
-  app/api/       Route handlers that build an Effect program and run it.
-  components/    Client UI (dashboard, list, map, report modal, badges).
+  lib/           auth (password hashing + signed session cookie), http
+                 (Exit -> Response), api client, present/view mappers, format.
+  app/           Pages (home, centros/[slug], registrar, centro, admin) and
+                 API route handlers.
+  components/    Client UI (browser, semaphore board, admin panels, forms).
 ```
 
-Dependency flow: `Supabase → NeedsRepository → DuplicateDetector`. Layers are
-memoized by reference, so a single Supabase client is shared per process. API
-routes never touch the database directly — they describe an `Effect` and hand it
-to the runtime, which maps the typed `Exit` to an HTTP status.
+Auth is intentionally lightweight: no user accounts. Writers are gated by a
+password (one per centro, one super-admin password) plus a signed, httpOnly
+session cookie. The public experience needs no login at all.
 
 ## Getting started (local)
 
 ```bash
 npm install
-cp .env.example .env.local   # optional: fill in Supabase creds for realtime
 npm run dev                  # http://localhost:3000
 ```
 
-Without Supabase credentials the app starts in **demo mode** (seeded in-memory
-data, single-client). Add the env vars to enable Postgres + cross-device
-realtime.
+Without Supabase credentials the app runs in **demo mode** (seeded in-memory
+data, single-client, no realtime). A demo centro is available with password
+`centro123`, and the super-admin password defaults to `admin`.
 
 ## Supabase setup
 
 1. Create a project at [supabase.com](https://supabase.com).
 2. In the SQL editor, run [`supabase/migrations/0001_init.sql`](./supabase/migrations/0001_init.sql)
-   (creates enums, `needs` + `status_updates`, RLS read policies, the realtime
-   publication, and demo seed rows).
-3. Copy the project credentials into `.env.local`:
+   (drops any v1 tables, creates the enums, `categories` / `products` /
+   `centros_acopio` / `product_status`, RLS policies, the realtime publication,
+   and seeds the catalog + one approved demo centro).
+3. Set the environment variables:
 
 ```env
 NEXT_PUBLIC_SUPABASE_URL=https://YOUR-PROJECT.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
 SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
+SUPER_ADMIN_PASSWORD=choose-a-strong-password
+SESSION_SECRET=choose-a-long-random-string
 ```
 
-The anon key is browser-safe (read + realtime only, enforced by RLS). The
-service role key is server-only and used to write rows for unauthenticated
-users.
+The anon key is browser-safe: RLS grants it realtime/read only on the public
+`product_status` table, and it has NO read access to `centros_acopio`, so the
+admin password hashes can never reach the browser. The service role key is
+server-only.
 
-## Deploy to Vercel
+## Roles & URLs
 
-1. Push this repo to GitHub and import it in Vercel (framework auto-detected).
-2. Add the three env vars above in **Project → Settings → Environment
-   Variables** (`SUPABASE_SERVICE_ROLE_KEY` must NOT be exposed publicly).
-3. Deploy. The result is a public, shareable URL.
+| URL                | Who            | What                                        |
+| ------------------ | -------------- | ------------------------------------------- |
+| `/`                | Público        | Browse centers (list + map)                 |
+| `/centros/[slug]`  | Público        | A center's live semaphore board             |
+| `/registrar`       | Público        | Register a new center (pending approval)    |
+| `/centro`          | Centro admin   | Log in, edit product statuses               |
+| `/admin`           | Super admin    | Approve / reject / disable centers          |
 
 ## Scripts
 
-| Script              | Description                |
-| ------------------- | -------------------------- |
-| `npm run dev`       | Dev server                 |
-| `npm run build`     | Production build           |
-| `npm run start`     | Run the production build    |
-| `npm run typecheck` | `tsc --noEmit`             |
+| Script              | Description       |
+| ------------------- | ----------------- |
+| `npm run dev`       | Dev server        |
+| `npm run build`     | Production build   |
+| `npm run start`     | Run the build     |
+| `npm run typecheck` | `tsc --noEmit`    |
 
-## Acceptance criteria
+## Deploy to Vercel
 
-- [x] Submit a need from a phone browser in < 30s
-- [x] New need appears on other devices without refresh (Realtime)
-- [x] Status changes reflected live across clients
-- [x] Map + list stay in sync from the same data
-- [x] One-handed mobile UX, large tap targets, no horizontal scroll
-- [x] Slow/unstable connection: clear pending/error/success states
-- [ ] Deployed to a public URL — requires Supabase + Vercel credentials (see above)
+1. Push to GitHub and import in Vercel (framework auto-detected).
+2. Add the five env vars above (`SUPABASE_SERVICE_ROLE_KEY`, `SUPER_ADMIN_PASSWORD`
+   and `SESSION_SECRET` must NOT be exposed publicly).
+3. Deploy for a public, shareable URL.

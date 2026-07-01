@@ -8,13 +8,13 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "AlivioVenezuela — Coordinación de ayuda en tiempo real",
+  title: "AlivioVenezuela — Centros de acopio en tiempo real",
   description:
-    "Reporta una necesidad o cubre una existente. Visibilidad en vivo de la ayuda tras el terremoto en Venezuela. Sin registro.",
+    "Consulta qué necesita cada centro de acopio antes de donar. Semáforo en vivo de artículos críticos, necesarios y suficientes tras el terremoto en Venezuela.",
 };
 
 export const viewport: Viewport = {
-  themeColor: "#059669",
+  themeColor: "#0f172a",
   width: "device-width",
   initialScale: 1,
   maximumScale: 1,

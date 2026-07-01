@@ -1,26 +1,37 @@
 import { Layer, ManagedRuntime } from "effect";
-import { DuplicateDetectorLive } from "@/services/DuplicateDetector";
-import { NeedsRepositoryMock } from "@/services/MockNeedsRepository";
-import { NeedsRepositoryLive } from "@/services/NeedsRepository";
+import {
+  CatalogRepositoryLive,
+} from "@/services/CatalogRepository";
+import {
+  CentrosRepositoryLive,
+} from "@/services/CentrosRepository";
+import {
+  CatalogRepositoryMock,
+  CentrosRepositoryMock,
+  ProductStatusRepositoryMock,
+} from "@/services/MockRepositories";
+import {
+  ProductStatusRepositoryLive,
+} from "@/services/ProductStatusRepository";
 import { isSupabaseConfigured, SupabaseLive } from "@/services/Supabase";
 
 /**
- * The application layer, assembled once. Dependencies flow bottom-up:
- *   Supabase  ->  NeedsRepository  ->  DuplicateDetector
- * `provideMerge` both satisfies each layer's requirements and re-exports the
- * services, so the final runtime exposes all of them (Effect memoizes layers by
- * reference, so the Supabase client is created at most once).
- *
- * When Supabase isn't configured we swap in an in-memory repository — same
- * interface, no other code changes — so the app stays usable as a fallback.
+ * The application layer, assembled once. Each repository depends only on the
+ * shared Supabase client (memoized by reference, so a single client is created
+ * per process). When Supabase isn't configured we swap in in-memory mocks with
+ * the same interfaces, so the app stays fully usable as a fallback.
  */
-const RepositoryLayer = isSupabaseConfigured()
-  ? NeedsRepositoryLive.pipe(Layer.provideMerge(SupabaseLive))
-  : NeedsRepositoryMock;
-
-const AppLayer = DuplicateDetectorLive.pipe(
-  Layer.provideMerge(RepositoryLayer),
-);
+const AppLayer = isSupabaseConfigured()
+  ? Layer.mergeAll(
+      CatalogRepositoryLive,
+      CentrosRepositoryLive,
+      ProductStatusRepositoryLive,
+    ).pipe(Layer.provide(SupabaseLive))
+  : Layer.mergeAll(
+      CatalogRepositoryMock,
+      CentrosRepositoryMock,
+      ProductStatusRepositoryMock,
+    );
 
 /**
  * A long-lived runtime reused across requests. In Next.js, module scope is
