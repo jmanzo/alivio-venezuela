@@ -20,7 +20,7 @@ export function Header({ subtitle, back }: HeaderProps) {
           </span>
           <span className="min-w-0">
             <span className="block truncate text-lg font-extrabold leading-tight text-slate-900">
-              AlivioVenezuela
+              Centros de Acopio
             </span>
             <span className="block truncate text-xs text-slate-500">
               {subtitle ?? "Centros de acopio · qué donar en tiempo real"}

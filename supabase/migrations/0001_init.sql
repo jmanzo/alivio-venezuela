@@ -1,4 +1,4 @@
--- AlivioVenezuela v2 — Centros de acopio product semaphore.
+-- Centros de Acopio Ven — Centros de acopio product semaphore.
 -- Replaces the v1 needs/status_updates model with a shared catalog + per-centro
 -- stock status. Run this in the Supabase SQL editor.
 

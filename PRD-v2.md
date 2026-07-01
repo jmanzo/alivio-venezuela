@@ -1,8 +1,8 @@
-# AlivioVenezuela v2 — Build Prompt / PRD for Cursor Agent
+# Centros de Acopio Ven (v2) — Build Prompt / PRD for Cursor Agent
 
 ## Context (for the agent)
 
-This is the v2 evolution of AlivioVenezuela. v1 (see [`PRD.md`](./PRD.md)) shipped a
+This is the v2 evolution of the project (formerly AlivioVenezuela). v1 (see [`PRD.md`](./PRD.md)) shipped a
 citizen-driven **need-report** tool: anyone dropped a pin for a point-in-time need
 (category, urgency, description) and anyone marked it `open → in_progress → covered`.
 
@@ -258,7 +258,7 @@ flowchart TD
 
 "After the June 24, 2026 earthquake doublet in Yaracuy and Carabobo, dozens of collection
 centers opened overnight — but citizens had no idea what each one actually needed. Some
-centers overflowed with water while others ran out of gauze. AlivioVenezuela v2 gives every
+centers overflowed with water while others ran out of gauze. Centros de Acopio Ven gives every
 center a live 'traffic light' of what to bring (and what not to), all from one public URL.
 Centers self-register, an operator approves them, and each center keeps its own board current
 in real time."

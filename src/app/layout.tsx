@@ -8,7 +8,7 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "AlivioVenezuela — Centros de acopio en tiempo real",
+  title: "Centros de Acopio — Guía de donaciones en tiempo real",
   description:
     "Consulta qué necesita cada centro de acopio antes de donar. Semáforo en vivo de artículos críticos, necesarios y suficientes tras el terremoto en Venezuela.",
 };

@@ -2,7 +2,7 @@ import { Header } from "@/components/Header";
 import { RegisterCentroForm } from "@/components/RegisterCentroForm";
 
 export const metadata = {
-  title: "Registrar un centro de acopio — AlivioVenezuela",
+  title: "Registrar un centro de acopio — Centros de Acopio",
 };
 
 export default function RegistrarPage() {

@@ -1,4 +1,4 @@
-# AlivioVenezuela
+# Centros de Acopio Ven
 
 A lightweight, real-time **semaphore of collection centers** ("centros de
 acopio") for the June 24, 2026 earthquake in Venezuela. Citizens see, at a
@@ -66,9 +66,14 @@ session cookie. The public experience needs no login at all.
 
 ## Getting started (local)
 
+This project uses **pnpm** (pinned via the `packageManager` field). If you have
+[Corepack](https://nodejs.org/api/corepack.html) enabled, the right pnpm version
+is used automatically.
+
 ```bash
-npm install
-npm run dev                  # http://localhost:3000
+corepack enable              # once, to activate the pinned pnpm
+pnpm install
+pnpm dev                     # http://localhost:3000
 ```
 
 Without Supabase credentials the app runs in **demo mode** (seeded in-memory
@@ -109,12 +114,12 @@ server-only.
 
 ## Scripts
 
-| Script              | Description       |
-| ------------------- | ----------------- |
-| `npm run dev`       | Dev server        |
-| `npm run build`     | Production build   |
-| `npm run start`     | Run the build     |
-| `npm run typecheck` | `tsc --noEmit`    |
+| Script            | Description       |
+| ----------------- | ----------------- |
+| `pnpm dev`        | Dev server        |
+| `pnpm build`      | Production build   |
+| `pnpm start`      | Run the build     |
+| `pnpm typecheck`  | `tsc --noEmit`    |
 
 ## Deploy to Vercel
 
