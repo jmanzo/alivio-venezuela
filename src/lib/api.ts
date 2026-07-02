@@ -58,11 +58,29 @@ export const api = {
   logout: () =>
     request<{ ok: true }>("/api/auth/logout", { method: "POST" }),
 
-  /** Centro admin: add a missing item to the shared catalog. */
+  /** Centro admin or super admin: add a missing item to the shared catalog. */
   createProduct: (name: string, categoryId: string) =>
     request<Product>("/api/catalog/products", {
       method: "POST",
       body: JSON.stringify({ name, categoryId }),
+    }),
+
+  /** Super admin: rename a product and/or move it to another category. */
+  updateProduct: (id: string, patch: { name?: string; categoryId?: string }) =>
+    request<Product>(`/api/admin/products/${id}`, {
+      method: "PATCH",
+      body: JSON.stringify(patch),
+    }),
+
+  /** Super admin: remove a product from the shared catalog. */
+  deleteProduct: (id: string) =>
+    request<{ ok: true }>(`/api/admin/products/${id}`, { method: "DELETE" }),
+
+  /** Super admin: assign a new admin password to a centro. */
+  setCentroPassword: (id: string, password: string) =>
+    request<{ ok: true }>(`/api/admin/centros/${id}/password`, {
+      method: "POST",
+      body: JSON.stringify({ password }),
     }),
 
   /** Centro admin: set/update the stock status of a product for this centro. */

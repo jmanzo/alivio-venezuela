@@ -8,13 +8,13 @@ import { CatalogRepository } from "@/services/CatalogRepository";
 export const dynamic = "force-dynamic";
 
 /**
- * POST /api/catalog/products — a logged-in centro admin adds a missing item to
- * the shared catalog so it becomes reusable by every centro. Requires a centro
- * session.
+ * POST /api/catalog/products — a logged-in centro admin (or the super admin)
+ * adds a missing item to the shared catalog so it becomes reusable by every
+ * centro. Requires a centro or super session.
  */
 export async function POST(request: Request) {
   const session = await getSession();
-  if (!session || session.role !== "centro") {
+  if (!session) {
     return NextResponse.json(
       { error: "AuthError", message: "No autorizado." },
       { status: 401 },

@@ -7,9 +7,9 @@ import {
   type RegistrationStatus,
   type StockStatus,
 } from "@/domain/Centro";
-import { AuthError, NotFoundError } from "@/domain/errors";
+import { AuthError, NotFoundError, ValidationError } from "@/domain/errors";
 import { hashPassword, verifyPassword } from "@/lib/auth";
-import { slugify } from "@/lib/format";
+import { normalizeText, slugify } from "@/lib/format";
 import {
   CatalogRepository,
   type CatalogRepositoryShape,
@@ -104,8 +104,27 @@ const summaryFor = (centro: CentroAcopio): CentroSummary => {
 const catalogImpl: CatalogRepositoryShape = {
   listCategories: () => Effect.succeed(categories),
   listProducts: () => Effect.succeed(products),
+  getProductById: (id) =>
+    Effect.suspend(() => {
+      const product = products.find((p) => p.id === id);
+      return product
+        ? Effect.succeed(product)
+        : Effect.fail(new NotFoundError({ entity: "product", id }));
+    }),
   createProduct: (request) =>
-    Effect.sync(() => {
+    Effect.suspend(() => {
+      const duplicate = products.find(
+        (p) =>
+          p.categoryId === request.categoryId &&
+          normalizeText(p.name) === normalizeText(request.name),
+      );
+      if (duplicate) {
+        return Effect.fail(
+          new ValidationError({
+            message: `Ya existe un insumo llamado «${duplicate.name}» en esa categoría.`,
+          }),
+        );
+      }
       const product = new Product({
         id: crypto.randomUUID(),
         categoryId: request.categoryId,
@@ -113,7 +132,28 @@ const catalogImpl: CatalogRepositoryShape = {
         sortOrder: products.length,
       });
       products.push(product);
-      return product;
+      return Effect.succeed(product);
+    }),
+  updateProduct: (id, request) =>
+    Effect.suspend(() => {
+      const index = products.findIndex((p) => p.id === id);
+      if (index === -1)
+        return Effect.fail(new NotFoundError({ entity: "product", id }));
+      const updated = new Product({
+        ...products[index],
+        name: request.name ?? products[index].name,
+        categoryId: request.categoryId ?? products[index].categoryId,
+      });
+      products[index] = updated;
+      return Effect.succeed(updated);
+    }),
+  deleteProduct: (id) =>
+    Effect.suspend(() => {
+      const index = products.findIndex((p) => p.id === id);
+      if (index === -1)
+        return Effect.fail(new NotFoundError({ entity: "product", id }));
+      products.splice(index, 1);
+      return Effect.void;
     }),
 };
 
@@ -177,6 +217,14 @@ const centrosImpl: CentrosRepositoryShape = {
       return Effect.succeed(updated);
     }),
 
+  setAdminPassword: (id, password) =>
+    Effect.suspend(() => {
+      if (!centros.some((c) => c.id === id))
+        return Effect.fail(new NotFoundError({ entity: "centro", id }));
+      passwordHashes.set(id, hashPassword(password));
+      return Effect.void;
+    }),
+
   authenticate: (id, password) =>
     Effect.suspend(() => {
       const centro = centros.find((c) => c.id === id);
@@ -185,7 +233,12 @@ const centrosImpl: CentrosRepositoryShape = {
         return Effect.fail(new AuthError({ message: "Centro o clave inválida." }));
       if (centro.registrationStatus !== "approved")
         return Effect.fail(
-          new AuthError({ message: "Este centro aún no ha sido aprobado." }),
+          new AuthError({
+            message:
+              centro.registrationStatus === "disabled"
+                ? "Este centro fue deshabilitado por el administrador."
+                : "Este centro aún no ha sido aprobado.",
+          }),
         );
       if (!verifyPassword(password, hash))
         return Effect.fail(new AuthError({ message: "Centro o clave inválida." }));

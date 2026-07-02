@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import type { StockStatus } from "@/domain/Centro";
 import { api } from "@/lib/api";
 import { STOCK_STATUS_META, STOCK_STATUS_ORDER } from "@/lib/constants";
+import { normalizeText } from "@/lib/format";
 import type { CategoryView, CentroView, ProductStatusView, ProductView } from "@/lib/view";
 
 interface CentroAdminPanelProps {
@@ -16,15 +17,6 @@ interface CentroAdminPanelProps {
 }
 
 const PAGE_SIZE = 12;
-
-/** Accent- and case-insensitive normalization for search matching. */
-function normalize(value: string): string {
-  return value
-    .normalize("NFD")
-    .replace(/\p{Diacritic}/gu, "")
-    .toLowerCase()
-    .trim();
-}
 
 interface FlatProduct {
   id: string;
@@ -68,11 +60,11 @@ export function CentroAdminPanel({
         id: p.id,
         name: p.name,
         categoryName: categoryName.get(p.categoryId) ?? "Sin categoría",
-        search: normalize(p.name),
+        search: normalizeText(p.name),
       }));
   }, [categories, products]);
 
-  const normalizedQuery = normalize(query);
+  const normalizedQuery = normalizeText(query);
   const filtered = useMemo(() => {
     if (normalizedQuery.length === 0) return flatProducts;
     return flatProducts.filter((p) => p.search.includes(normalizedQuery));

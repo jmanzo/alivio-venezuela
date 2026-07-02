@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import type { StockStatus } from "@/domain/Centro";
 import { STOCK_STATUS_META, STOCK_STATUS_ORDER } from "@/lib/constants";
-import { timeAgo } from "@/lib/format";
+import { isStale, STALE_AFTER_DAYS, timeAgo } from "@/lib/format";
 import {
   decodeProductStatusRow,
   getBrowserSupabase,
@@ -131,6 +131,35 @@ export function SemaphoreBoard({
   }, [statusMap]);
 
   const trackedCount = statusMap.size;
+  const stale = isStale(lastUpdated);
+
+  /** Opens WhatsApp with a "qué llevar" summary + the board URL. */
+  const shareViaWhatsApp = () => {
+    const names = (level: StockStatus) =>
+      grouped
+        .find((g) => g.level === level)
+        ?.sections.flatMap((s) => s.products.map((p) => p.name)) ?? [];
+    const listOf = (items: string[], max = 12) =>
+      items.length <= max
+        ? items.join(", ")
+        : `${items.slice(0, max).join(", ")} y ${items.length - max} más`;
+
+    const critico = names("critico");
+    const necesita = names("necesita_mas");
+    const lines = [`*${centro.name}* — qué llevar:`];
+    if (critico.length > 0) lines.push(`🚨 URGENTE: ${listOf(critico)}`);
+    if (necesita.length > 0) lines.push(`⚠️ Hace falta: ${listOf(necesita)}`);
+    if (critico.length === 0 && necesita.length === 0)
+      lines.push("✅ Por ahora no hay artículos urgentes.");
+    lines.push(`📍 ${centro.addressLabel}`);
+    lines.push(`Lista completa y actualizada: ${window.location.href}`);
+
+    window.open(
+      `https://wa.me/?text=${encodeURIComponent(lines.join("\n"))}`,
+      "_blank",
+      "noopener",
+    );
+  };
 
   return (
     <div>
@@ -144,7 +173,14 @@ export function SemaphoreBoard({
           <p className="mt-0.5 text-sm text-slate-500">
             Contacto: {centro.contactName ?? ""}
             {centro.contactName && centro.contactPhone ? " · " : ""}
-            {centro.contactPhone ?? ""}
+            {centro.contactPhone && (
+              <a
+                href={`tel:${centro.contactPhone.replace(/[^\d+]/g, "")}`}
+                className="font-semibold text-slate-700 underline"
+              >
+                {centro.contactPhone}
+              </a>
+            )}
           </p>
         )}
         <div className="mt-3 flex flex-wrap items-center gap-2 text-xs">
@@ -163,6 +199,29 @@ export function SemaphoreBoard({
             </span>
           )}
         </div>
+        {stale && (
+          <p className="mt-2 rounded-xl bg-amber-50 px-3 py-2 text-xs font-medium text-amber-800">
+            ⚠️ Este centro no actualiza su lista desde hace más de{" "}
+            {STALE_AFTER_DAYS} días. Confirma antes de llevar tu donación.
+          </p>
+        )}
+        {trackedCount > 0 && (
+          <button
+            type="button"
+            onClick={shareViaWhatsApp}
+            className="mt-3 inline-flex min-h-10 w-full items-center justify-center gap-2 rounded-xl bg-[#25D366] px-4 text-sm font-bold text-white transition hover:brightness-95 sm:w-auto"
+          >
+            <svg
+              viewBox="0 0 24 24"
+              fill="currentColor"
+              className="h-4 w-4"
+              aria-hidden
+            >
+              <path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2Zm0 18.2c-1.5 0-3-.4-4.3-1.2l-.3-.2-3 .8.8-2.9-.2-.3A8.2 8.2 0 1 1 12 20.2Zm4.5-6.1c-.2-.1-1.5-.7-1.7-.8-.2-.1-.4-.1-.6.1l-.8 1c-.1.2-.3.2-.5.1a6.7 6.7 0 0 1-3.3-2.9c-.3-.4 0-.5.2-.8l.4-.5c.1-.2.1-.4 0-.6l-.8-1.9c-.2-.5-.4-.4-.6-.4h-.5c-.2 0-.5.1-.7.3-.9.9-1.2 2.2-.4 3.7a12 12 0 0 0 4.6 4.5c1.8.9 2.6 1 3.5.8.6-.1 1.5-.6 1.7-1.2.2-.6.2-1.1.1-1.2l-.6-.2Z" />
+            </svg>
+            Compartir por WhatsApp
+          </button>
+        )}
       </section>
 
       {trackedCount === 0 ? (

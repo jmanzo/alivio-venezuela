@@ -21,10 +21,20 @@ const STATUS_BY_TAG: Record<AppError["_tag"], number> = {
   ConfigurationError: 500,
 };
 
+/**
+ * Client-facing message per error. Database/configuration failures are logged
+ * server-side but NEVER echoed to the client (they leak schema/infra details).
+ */
 function messageOf(error: AppError): string {
-  if (error._tag === "NotFoundError")
-    return `${error.entity} ${error.id} not found`;
-  return error.message;
+  switch (error._tag) {
+    case "NotFoundError":
+      return `${error.entity} ${error.id} not found`;
+    case "DatabaseError":
+    case "ConfigurationError":
+      return "Error interno del servidor. Intenta de nuevo.";
+    default:
+      return error.message;
+  }
 }
 
 /**
@@ -44,6 +54,9 @@ export async function runHttp<A>(
       const failure = Cause.failureOption(cause);
       if (failure._tag === "Some") {
         const error = failure.value;
+        if (STATUS_BY_TAG[error._tag] >= 500) {
+          console.error(`[${error._tag}]`, error.message);
+        }
         return NextResponse.json(
           {
             error: error._tag,

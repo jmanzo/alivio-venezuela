@@ -20,7 +20,14 @@ export type Session =
   | { role: "centro"; centroId: string; slug: string; name: string };
 
 function sessionSecret(): string {
-  return process.env.SESSION_SECRET || "dev-insecure-session-secret-change-me";
+  const secret = process.env.SESSION_SECRET;
+  if (secret) return secret;
+  if (process.env.NODE_ENV === "production") {
+    throw new Error(
+      "SESSION_SECRET must be set in production — refusing to sign sessions with the dev fallback.",
+    );
+  }
+  return "dev-insecure-session-secret-change-me";
 }
 
 /** Hashes a password with a per-password random salt: `salt:hash`. */
@@ -43,7 +50,15 @@ export function verifyPassword(password: string, stored: string): boolean {
 
 /** Verifies the single super-admin password from the environment. */
 export function verifySuperPassword(password: string): boolean {
-  const expected = process.env.SUPER_ADMIN_PASSWORD || "admin";
+  let expected = process.env.SUPER_ADMIN_PASSWORD;
+  if (!expected) {
+    if (process.env.NODE_ENV === "production") {
+      throw new Error(
+        "SUPER_ADMIN_PASSWORD must be set in production — refusing the dev fallback.",
+      );
+    }
+    expected = "admin";
+  }
   if (password.length === 0) return false;
   const a = Buffer.from(password);
   const b = Buffer.from(expected);
@@ -55,7 +70,13 @@ function sign(payload: string): string {
 }
 
 function encodeSession(session: Session): string {
-  const payload = Buffer.from(JSON.stringify(session)).toString("base64url");
+  // The expiry lives INSIDE the signed payload: the cookie's maxAge is only a
+  // client-side hint, so a copied token must still stop working after the TTL.
+  const withExpiry = {
+    ...session,
+    exp: Math.floor(Date.now() / 1000) + SESSION_TTL_SECONDS,
+  };
+  const payload = Buffer.from(JSON.stringify(withExpiry)).toString("base64url");
   return `${payload}.${sign(payload)}`;
 }
 
@@ -68,7 +89,13 @@ function decodeSession(token: string | undefined): Session | null {
   const b = Buffer.from(expected);
   if (a.length !== b.length || !timingSafeEqual(a, b)) return null;
   try {
-    return JSON.parse(Buffer.from(payload, "base64url").toString()) as Session;
+    const { exp, ...session } = JSON.parse(
+      Buffer.from(payload, "base64url").toString(),
+    ) as Session & { exp?: number };
+    if (typeof exp !== "number" || exp <= Math.floor(Date.now() / 1000)) {
+      return null;
+    }
+    return session as Session;
   } catch {
     return null;
   }

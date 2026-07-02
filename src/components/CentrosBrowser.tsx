@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import Link from "next/link";
-import { timeAgo } from "@/lib/format";
+import { isStale, normalizeText, timeAgo } from "@/lib/format";
 import type { CentroSummaryView } from "@/lib/view";
 import CentrosMap from "./map/CentrosMap";
 
@@ -14,6 +14,17 @@ export function CentrosBrowser({
   summaries: CentroSummaryView[];
 }) {
   const [view, setView] = useState<ViewMode>("list");
+  const [query, setQuery] = useState("");
+
+  const normalizedQuery = normalizeText(query);
+  const filtered = useMemo(() => {
+    if (normalizedQuery.length === 0) return summaries;
+    return summaries.filter(
+      (s) =>
+        normalizeText(s.centro.name).includes(normalizedQuery) ||
+        normalizeText(s.centro.addressLabel).includes(normalizedQuery),
+    );
+  }, [summaries, normalizedQuery]);
 
   return (
     <div>
@@ -31,12 +42,36 @@ export function CentrosBrowser({
         </div>
       </div>
 
+      {summaries.length > 1 && (
+        <div className="relative mt-3">
+          <span
+            className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
+            aria-hidden
+          >
+            🔎
+          </span>
+          <input
+            type="search"
+            inputMode="search"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Buscar centro por nombre o zona…"
+            aria-label="Buscar centro"
+            className="w-full rounded-xl border border-slate-200 bg-white py-2 pl-9 pr-3 text-sm text-slate-900 outline-none focus:border-slate-400"
+          />
+        </div>
+      )}
+
       <div className="mt-3">
         {summaries.length === 0 ? (
           <EmptyState />
+        ) : filtered.length === 0 ? (
+          <p className="rounded-2xl border border-dashed border-slate-300 bg-white p-6 text-center text-sm text-slate-500">
+            No se encontraron centros para «{query}».
+          </p>
         ) : view === "list" ? (
           <ul className="space-y-3">
-            {summaries.map((summary) => (
+            {filtered.map((summary) => (
               <li key={summary.centro.id}>
                 <CentroCard summary={summary} />
               </li>
@@ -44,7 +79,7 @@ export function CentrosBrowser({
           </ul>
         ) : (
           <div className="overflow-hidden rounded-2xl border border-slate-200">
-            <CentrosMap summaries={summaries} />
+            <CentrosMap summaries={filtered} />
           </div>
         )}
       </div>
@@ -87,6 +122,11 @@ function CentroCard({ summary }: { summary: CentroSummaryView }) {
         {trackedCount === 0 && (
           <span className="rounded-full bg-slate-100 px-2 py-1 text-slate-500">
             Sin información aún
+          </span>
+        )}
+        {trackedCount > 0 && isStale(lastUpdated) && (
+          <span className="rounded-full bg-slate-100 px-2 py-1 text-slate-500">
+            ⏳ Desactualizado
           </span>
         )}
         <span className="ml-auto font-normal text-slate-400">

@@ -39,6 +39,11 @@ export interface CentrosRepositoryShape {
     id: string,
     status: RegistrationStatus,
   ) => Effect.Effect<CentroAcopio, DatabaseError | NotFoundError>;
+  /** Super-admin reset of a centro's admin password (recovery path). */
+  readonly setAdminPassword: (
+    id: string,
+    password: string,
+  ) => Effect.Effect<void, DatabaseError | NotFoundError>;
   /** Verify centro-admin credentials; only approved centros can log in. */
   readonly authenticate: (
     id: string,
@@ -236,6 +241,22 @@ export const CentrosRepositoryLive = Layer.effect(
           return yield* decodeOne(row);
         }),
 
+      setAdminPassword: (id, password) =>
+        Effect.gen(function* () {
+          const rows = yield* runQuery("set admin password", () =>
+            sb
+              .from("centros_acopio")
+              .update({ admin_password_hash: hashPassword(password) })
+              .eq("id", id)
+              .select("id"),
+          );
+          if (!rows || (rows as unknown[]).length === 0) {
+            return yield* Effect.fail(
+              new NotFoundError({ entity: "centro", id }),
+            );
+          }
+        }),
+
       authenticate: (id, password) =>
         Effect.gen(function* () {
           const row = yield* runQuery("read centro credentials", () =>
@@ -256,7 +277,10 @@ export const CentrosRepositoryLive = Layer.effect(
           if (record.registration_status !== "approved") {
             return yield* Effect.fail(
               new AuthError({
-                message: "Este centro aún no ha sido aprobado.",
+                message:
+                  record.registration_status === "disabled"
+                    ? "Este centro fue deshabilitado por el administrador."
+                    : "Este centro aún no ha sido aprobado.",
               }),
             );
           }
