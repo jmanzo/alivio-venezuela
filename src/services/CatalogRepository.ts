@@ -1,5 +1,5 @@
 import { Context, Effect, Layer, Schema } from "effect";
-import { Category, Product } from "@/domain/Catalog";
+import { Category, type CreateProductRequest, Product } from "@/domain/Catalog";
 import { DatabaseError } from "@/domain/errors";
 import { Supabase } from "./Supabase";
 
@@ -14,6 +14,10 @@ export interface CatalogRepositoryShape {
     ReadonlyArray<Product>,
     DatabaseError
   >;
+  /** Add a product to the shared catalog (appended after the last one). */
+  readonly createProduct: (
+    request: CreateProductRequest,
+  ) => Effect.Effect<Product, DatabaseError>;
 }
 
 export class CatalogRepository extends Context.Tag("CatalogRepository")<
@@ -23,6 +27,7 @@ export class CatalogRepository extends Context.Tag("CatalogRepository")<
 
 const decodeCategories = Schema.decodeUnknown(Schema.Array(Category));
 const decodeProducts = Schema.decodeUnknown(Schema.Array(Product));
+const decodeProduct = Schema.decodeUnknown(Product);
 
 /** Wraps a Supabase promise, mapping rejections to a typed DatabaseError. */
 const runQuery = <A>(
@@ -73,6 +78,33 @@ export const CatalogRepositoryLive = Layer.effect(
             sb.from("products").select("*").order("sort_order"),
           );
           return yield* decodeMany(decodeProducts)(rows);
+        }),
+
+      createProduct: (request) =>
+        Effect.gen(function* () {
+          const last = yield* runQuery("read last product sort order", () =>
+            sb
+              .from("products")
+              .select("sort_order")
+              .order("sort_order", { ascending: false })
+              .limit(1)
+              .maybeSingle(),
+          );
+          const nextSortOrder =
+            ((last as { sort_order: number } | null)?.sort_order ?? -1) + 1;
+
+          const row = yield* runQuery("create product", () =>
+            sb
+              .from("products")
+              .insert({
+                category_id: request.categoryId,
+                name: request.name,
+                sort_order: nextSortOrder,
+              })
+              .select("*")
+              .single(),
+          );
+          return yield* decodeMany(decodeProduct)(row);
         }),
     });
   }),

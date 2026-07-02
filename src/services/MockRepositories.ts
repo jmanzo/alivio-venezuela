@@ -104,6 +104,17 @@ const summaryFor = (centro: CentroAcopio): CentroSummary => {
 const catalogImpl: CatalogRepositoryShape = {
   listCategories: () => Effect.succeed(categories),
   listProducts: () => Effect.succeed(products),
+  createProduct: (request) =>
+    Effect.sync(() => {
+      const product = new Product({
+        id: crypto.randomUUID(),
+        categoryId: request.categoryId,
+        name: request.name,
+        sortOrder: products.length,
+      });
+      products.push(product);
+      return product;
+    }),
 };
 
 const centrosImpl: CentrosRepositoryShape = {

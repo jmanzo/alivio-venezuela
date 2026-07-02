@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { getSession } from "@/lib/auth";
 
 interface HeaderProps {
   /** Optional secondary line shown under the title. */
@@ -7,7 +8,10 @@ interface HeaderProps {
   back?: boolean;
 }
 
-export function Header({ subtitle, back }: HeaderProps) {
+export async function Header({ subtitle, back }: HeaderProps) {
+  const session = await getSession();
+  const isLoggedIn = session !== null;
+
   return (
     <header className="sticky top-0 z-40 border-b border-slate-200 bg-white/90 backdrop-blur">
       <div className="mx-auto flex w-full max-w-3xl items-center gap-3 px-4 py-3">
@@ -38,17 +42,19 @@ export function Header({ subtitle, back }: HeaderProps) {
             </Link>
           ) : (
             <>
-              <Link
-                href="/registrar"
-                className="rounded-lg px-3 py-1.5 text-slate-600 hover:bg-slate-100"
-              >
-                Registrar
-              </Link>
+              {!isLoggedIn && (
+                <Link
+                  href="/registrar"
+                  className="rounded-lg px-3 py-1.5 text-slate-600 hover:bg-slate-100"
+                >
+                  Registrar
+                </Link>
+              )}
               <Link
                 href="/centro"
                 className="rounded-lg bg-slate-900 px-3 py-1.5 text-white hover:bg-slate-700"
               >
-                Soy un centro
+                Mi Centro
               </Link>
             </>
           )}

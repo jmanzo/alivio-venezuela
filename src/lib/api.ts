@@ -1,3 +1,4 @@
+import type { Product } from "@/domain/Catalog";
 import type {
   CentroAcopio,
   ProductStatus,
@@ -56,6 +57,13 @@ export const api = {
   /** End the current session (either role). */
   logout: () =>
     request<{ ok: true }>("/api/auth/logout", { method: "POST" }),
+
+  /** Centro admin: add a missing item to the shared catalog. */
+  createProduct: (name: string, categoryId: string) =>
+    request<Product>("/api/catalog/products", {
+      method: "POST",
+      body: JSON.stringify({ name, categoryId }),
+    }),
 
   /** Centro admin: set/update the stock status of a product for this centro. */
   setProductStatus: (slug: string, productId: string, status: StockStatus) =>
