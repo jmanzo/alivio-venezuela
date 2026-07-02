@@ -41,5 +41,5 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
-# internal planning doc (kept locally, not tracked in git)
-/PRD.md
+# internal planning docs (kept locally, not tracked in git)
+PRD*.md
