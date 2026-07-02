@@ -127,3 +127,13 @@ server-only.
 2. Add the five env vars above (`SUPABASE_SERVICE_ROLE_KEY`, `SUPER_ADMIN_PASSWORD`
    and `SESSION_SECRET` must NOT be exposed publicly).
 3. Deploy for a public, shareable URL.
+
+## License
+
+This project is free software licensed under the **GNU Affero General Public
+License v3.0 or later (AGPL-3.0-or-later)** — see [`LICENSE`](./LICENSE). It is a
+non-profit, fully free tool: you may use, study, share and modify it, and any
+modified version you run as a network service must also be offered under the same
+license.
+
+See [`CHANGELOG.md`](./CHANGELOG.md) for the release history.
