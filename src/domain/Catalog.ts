@@ -26,3 +26,25 @@ export class Product extends Schema.Class<Product>("Product")({
     Schema.fromKey("sort_order"),
   ),
 }) {}
+
+/**
+ * Payload accepted by the "create a product" endpoint. A centro admin can add a
+ * missing item to the shared catalog so it becomes reusable by every centro.
+ */
+export const CreateProductRequest = Schema.Struct({
+  name: Schema.String.pipe(Schema.minLength(2), Schema.maxLength(80)),
+  categoryId: Schema.String.pipe(Schema.minLength(1)),
+});
+export type CreateProductRequest = typeof CreateProductRequest.Type;
+
+/**
+ * Payload accepted by the super-admin "update a product" endpoint (rename
+ * and/or move to another category).
+ */
+export const UpdateProductRequest = Schema.Struct({
+  name: Schema.optional(
+    Schema.String.pipe(Schema.minLength(2), Schema.maxLength(80)),
+  ),
+  categoryId: Schema.optional(Schema.String.pipe(Schema.minLength(1))),
+});
+export type UpdateProductRequest = typeof UpdateProductRequest.Type;

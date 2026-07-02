@@ -4,6 +4,7 @@ import { SetProductStatusRequest } from "@/domain/Centro";
 import { AuthError } from "@/domain/errors";
 import { getSession } from "@/lib/auth";
 import { decodeJsonBody, runHttp } from "@/lib/http";
+import { CatalogRepository } from "@/services/CatalogRepository";
 import { CentrosRepository } from "@/services/CentrosRepository";
 import { ProductStatusRepository } from "@/services/ProductStatusRepository";
 
@@ -29,6 +30,7 @@ export async function PATCH(
   const program = Effect.gen(function* () {
     const body = yield* decodeJsonBody(request, SetProductStatusRequest);
     const centros = yield* CentrosRepository;
+    const catalog = yield* CatalogRepository;
     const statuses = yield* ProductStatusRepository;
 
     // Re-resolve the centro to guard against a stale/spoofed session slug.
@@ -38,6 +40,8 @@ export async function PATCH(
         new AuthError({ message: "No autorizado para este centro." }),
       );
     }
+    // Validate the product up front: a clean 404 instead of an FK-violation 500.
+    yield* catalog.getProductById(body.productId);
     return yield* statuses.upsert(
       centro.id,
       body.productId,

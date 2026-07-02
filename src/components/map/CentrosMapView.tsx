@@ -36,6 +36,20 @@ function ResizeHandler({ trigger }: { trigger: unknown }) {
   return null;
 }
 
+/** Frames every centro on open — otherwise pins outside the default viewport
+ *  leave donors staring at an empty map. */
+function FitToCentros({ summaries }: { summaries: CentroSummaryView[] }) {
+  const map = useMap();
+  useEffect(() => {
+    if (summaries.length === 0) return;
+    const bounds = L.latLngBounds(
+      summaries.map((s) => [s.centro.lat, s.centro.lng] as [number, number]),
+    );
+    map.fitBounds(bounds, { padding: [48, 48], maxZoom: 13 });
+  }, [map, summaries]);
+  return null;
+}
+
 export default function CentrosMapView({
   summaries,
 }: {
@@ -49,33 +63,30 @@ export default function CentrosMapView({
       className="avz-map"
     >
       <ResizeHandler trigger={summaries.length} />
+      <FitToCentros summaries={summaries} />
       <TileLayer
         attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
         url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
       />
-      {summaries.map(({ centro, criticoCount, necesitaMasCount }) => (
+      {summaries.map((summary) => (
         <Marker
-          key={centro.id}
-          position={[centro.lat, centro.lng]}
-          icon={pinIcon({
-            centro,
-            criticoCount,
-            necesitaMasCount,
-            trackedCount: criticoCount + necesitaMasCount,
-            lastUpdated: null,
-          })}
+          key={summary.centro.id}
+          position={[summary.centro.lat, summary.centro.lng]}
+          icon={pinIcon(summary)}
         >
           <Popup>
             <div className="space-y-1">
-              <p className="font-semibold">{centro.name}</p>
-              <p className="text-xs text-slate-500">{centro.addressLabel}</p>
-              {criticoCount > 0 && (
+              <p className="font-semibold">{summary.centro.name}</p>
+              <p className="text-xs text-slate-500">
+                {summary.centro.addressLabel}
+              </p>
+              {summary.criticoCount > 0 && (
                 <p className="text-xs font-semibold text-red-600">
-                  🚨 {criticoCount} artículo(s) crítico(s)
+                  🚨 {summary.criticoCount} artículo(s) crítico(s)
                 </p>
               )}
               <Link
-                href={`/centros/${centro.slug}`}
+                href={`/centros/${summary.centro.slug}`}
                 className="mt-1 inline-block text-sm font-semibold text-slate-900 underline"
               >
                 Ver qué llevar

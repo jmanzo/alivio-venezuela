@@ -1,7 +1,8 @@
 {
   "name": "centros-de-acopio-ven",
-  "version": "0.1.0",
+  "version": "0.6.0",
   "private": true,
+  "license": "AGPL-3.0-or-later",
   "packageManager": "pnpm@9.15.9",
   "scripts": {
     "dev": "next dev",

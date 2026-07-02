@@ -123,7 +123,17 @@ function CentroRow({
               {meta.label}
             </span>
           </div>
-          <p className="mt-0.5 text-sm text-slate-500">📍 {centro.addressLabel}</p>
+          <p className="mt-0.5 text-sm text-slate-500">
+            📍 {centro.addressLabel}{" "}
+            <a
+              href={`https://www.openstreetmap.org/?mlat=${centro.lat}&mlon=${centro.lng}#map=16/${centro.lat}/${centro.lng}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="font-semibold text-slate-700 underline"
+            >
+              Ver en mapa ↗
+            </a>
+          </p>
           {(centro.contactName || centro.contactPhone) && (
             <p className="text-xs text-slate-400">
               {centro.contactName ?? ""}
@@ -164,6 +174,86 @@ function CentroRow({
           </Action>
         )}
       </div>
+
+      {centro.registrationStatus === "approved" && (
+        <PasswordReset centroId={centro.id} />
+      )}
+    </div>
+  );
+}
+
+/** Recovery path: the super admin assigns a new access key to a centro. */
+function PasswordReset({ centroId }: { centroId: string }) {
+  const [open, setOpen] = useState(false);
+  const [password, setPassword] = useState("");
+  const [state, setState] = useState<"idle" | "saving" | "done" | "error">(
+    "idle",
+  );
+  const [message, setMessage] = useState<string | null>(null);
+
+  const save = async () => {
+    if (password.length < 6) {
+      setState("error");
+      setMessage("La clave debe tener al menos 6 caracteres.");
+      return;
+    }
+    setState("saving");
+    setMessage(null);
+    try {
+      await api.setCentroPassword(centroId, password);
+      setState("done");
+      setMessage("Clave actualizada. Compártela con el centro.");
+      setPassword("");
+    } catch (err) {
+      setState("error");
+      setMessage(
+        err instanceof Error ? err.message : "No se pudo cambiar la clave.",
+      );
+    }
+  };
+
+  return (
+    <div className="mt-2">
+      <button
+        type="button"
+        onClick={() => {
+          setOpen((v) => !v);
+          setState("idle");
+          setMessage(null);
+        }}
+        aria-expanded={open}
+        className="text-xs font-semibold text-slate-500 underline"
+      >
+        {open ? "Cancelar cambio de clave" : "Asignar nueva clave de acceso"}
+      </button>
+      {open && (
+        <div className="mt-2 flex gap-2">
+          <input
+            type="text"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            placeholder="Nueva clave (mín. 6)"
+            aria-label="Nueva clave del centro"
+            maxLength={200}
+            className="flex-1 rounded-lg border border-slate-200 px-3 py-1.5 text-sm text-slate-900 outline-none focus:border-slate-400"
+          />
+          <button
+            type="button"
+            onClick={save}
+            disabled={state === "saving"}
+            className="rounded-lg bg-slate-900 px-3 py-1.5 text-sm font-semibold text-white hover:bg-slate-700 disabled:opacity-50"
+          >
+            {state === "saving" ? "…" : "Guardar"}
+          </button>
+        </div>
+      )}
+      {message && (
+        <p
+          className={`mt-1 text-xs ${state === "done" ? "text-emerald-700" : "text-red-600"}`}
+        >
+          {message}
+        </p>
+      )}
     </div>
   );
 }

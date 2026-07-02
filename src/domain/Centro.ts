@@ -110,3 +110,12 @@ export const SetRegistrationStatusRequest = Schema.Struct({
 });
 export type SetRegistrationStatusRequest =
   typeof SetRegistrationStatusRequest.Type;
+
+/**
+ * Payload accepted by the super-admin "reset a centro's password" endpoint —
+ * the recovery path when a centro forgets its access key.
+ */
+export const SetCentroPasswordRequest = Schema.Struct({
+  password: Schema.String.pipe(Schema.minLength(6), Schema.maxLength(200)),
+});
+export type SetCentroPasswordRequest = typeof SetCentroPasswordRequest.Type;
